@@ -1,0 +1,32 @@
+name: Check Bash scripts
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate Bash syntax
+        run: |
+          bash -n check_api.sh
+          bash -n analyze_logs.sh
+
+      - name: Test HTTP 200 endpoint
+        run: |
+          bash check_api.sh https://httpbin.org/status/200
+
+      - name: Verify generated access logs and analysis
+        run: |
+          bash analyze_logs.sh | tee analysis-output.txt
+          test "$(wc -l < access.log)" -ge 300
+          grep -q 'Всего запросов: 360' analysis-output.txt
+          grep -q 'Запросов с кодами 4xx и 5xx:' analysis-output.txt
